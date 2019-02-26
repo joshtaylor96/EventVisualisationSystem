@@ -1,0 +1,36 @@
+import requests
+
+url = 'https://content.guardianapis.com/search'
+payload = {'api-key': 'c76e5cbc-9818-48e0-922a-32a66f1d56f3', 'show-tags': 'all', 'show-fields': 'all'}
+
+
+def get_articles(query, start_page, page_count):
+    payload['q'] = query
+    articles = []
+
+    for page in range(start_page, start_page+page_count):
+        payload['page'] = str(page)
+        request = requests.get(url, params=payload)
+        results = request.json()['response']['results']
+
+        for result in results:
+            new_article = dict()
+            new_article['api_id'] = result['id']
+            new_article['api_url'] = result['apiUrl']
+            new_article['headline'] = result['fields']['headline']
+            new_article['body_text'] = result['fields']['bodyText']
+            new_article['tags'] = []
+            for tag in result['tags']:
+                if tag['type'] == 'keyword' and tag['webTitle'] not in new_article['tags']:
+                    new_article['tags'].append(tag['webTitle'])
+            new_article['sections'] = []
+            for tag in result['tags']:
+                if tag['type'] == 'keyword' and 'sectionName' in tag.keys() \
+                        and tag['sectionId'] not in new_article['sections']:
+                    new_article['sections'].append(tag['sectionId'])
+            new_article['type'] = result['type']
+            new_article['publication_date'] = result['webPublicationDate']
+            new_article['source'] = "GuardianAPI"
+            articles.append(new_article)
+
+    return articles
